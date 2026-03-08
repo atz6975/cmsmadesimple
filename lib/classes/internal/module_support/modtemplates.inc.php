@@ -27,6 +27,37 @@
  */
 
 /**
+ * Strip the (f) file-override indicator from a template name.
+ * Handles any or no whitespace before (f): "name(f)", "name (f)", "name  (f)".
+ * @access private
+ */
+function _cms_module_strip_file_tag($tpl_name)
+{
+	return preg_replace('/\s*\(f\)$/', '', $tpl_name);
+}
+
+/**
+ * Check if a template name has the (f) file-override indicator.
+ * @access private
+ */
+function _cms_module_has_file_tag($tpl_name)
+{
+	return (bool) preg_match('/\s*\(f\)$/', $tpl_name);
+}
+
+/**
+ * Check if a file override exists for a module DB template.
+ * File path: assets/module_custom/{module}/templates/db/{template_name}.tpl
+ * @access private
+ */
+function _cms_module_has_template_file($module_name, $tpl_name)
+{
+	$config = \cms_config::get_instance();
+	$fn = cms_join_path($config['assets_path'], 'module_custom', $module_name, 'templates', 'db', basename($tpl_name) . '.tpl');
+	return is_file($fn) && is_readable($fn);
+}
+
+/**
  * @access private
  */
 function cms_module_ListTemplates(&$modinstance, $modulename = '')
