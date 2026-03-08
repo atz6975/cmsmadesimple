@@ -2483,6 +2483,8 @@ abstract class CMSModule
      */
     final public function GetDatabaseResource($template)
     {
+        // Strip (f) file-override indicator
+        $template = preg_replace('/\s*\(f\)$/', '', $template);
         if( endswith($template,'.tpl') ) return 'module_file_tpl:'.$this->GetName().';'.$template;
         return 'module_db_tpl:'.$this->GetName().';'.$template;
     }

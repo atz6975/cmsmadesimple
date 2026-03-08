@@ -41,10 +41,15 @@ class CMSModuleDbTemplateResource extends CMS_Fixed_Resource_Custom
         debug_buffer('','CMSModuleDbTemplateResource start'.$name);
         $db = CmsApp::get_instance()->GetDb();
 
-        $tmp = explode(';',$name);
-        $query = "SELECT * from ".CMS_DB_PREFIX."module_templates WHERE module_name = ? and template_name = ?";
         $parts = explode(';',$name);
-        $row = $db->GetRow($query, $parts);
+        $module_name = trim($parts[0]);
+        $tpl_name = trim($parts[1]);
+
+        // Strip (f) tag if present
+        $tpl_name = preg_replace('/\s*\(f\)$/', '', $tpl_name);
+
+        $query = "SELECT * from ".CMS_DB_PREFIX."module_templates WHERE module_name = ? and template_name = ?";
+        $row = $db->GetRow($query, array($module_name, $tpl_name));
         if ($row) {
             $source = $row['content'];
             $mtime = $db->UnixTimeStamp($row['modified_date']);
@@ -52,7 +57,7 @@ class CMSModuleDbTemplateResource extends CMS_Fixed_Resource_Custom
         else {
             // fallback to the layout stuff.
             try {
-                $obj = CmsLayoutTemplate::load($parts[1]);
+                $obj = CmsLayoutTemplate::load($tpl_name);
                 $source = $obj->get_content();
                 $mtime = $obj->get_modified();
             }

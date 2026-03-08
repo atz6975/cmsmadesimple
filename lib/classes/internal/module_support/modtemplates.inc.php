@@ -83,6 +83,7 @@ function cms_module_ListTemplates(&$modinstance, $modulename = '')
  */
 function cms_module_GetTemplate(&$modinstance, $tpl_name, $modulename = '')
 {
+	$tpl_name = _cms_module_strip_file_tag($tpl_name);
 	$db = CmsApp::get_instance()->GetDb();
 
 	$query = 'SELECT * from '.CMS_DB_PREFIX.'module_templates WHERE module_name = ? and template_name = ?';
@@ -123,6 +124,7 @@ function cms_module_GetTemplateFromFile(&$modinstance, $template_name)
  */
 function cms_module_SetTemplate(&$modinstance, $tpl_name, $content, $modulename = '')
 {
+	$tpl_name = _cms_module_strip_file_tag($tpl_name);
 	$db = CmsApp::get_instance()->GetDb();
 
 	$query = 'SELECT module_name FROM '.CMS_DB_PREFIX.'module_templates WHERE module_name = ? and template_name = ?';
@@ -144,6 +146,7 @@ function cms_module_SetTemplate(&$modinstance, $tpl_name, $content, $modulename 
  */
 function cms_module_DeleteTemplate(&$modinstance, $tpl_name = '', $modulename = '')
 {
+	$tpl_name = _cms_module_strip_file_tag($tpl_name);
 	$db = CmsApp::get_instance()->GetDb();
 
 	$parms = array($modulename != ''?$modulename:$modinstance->GetName());
@@ -161,6 +164,7 @@ function cms_module_DeleteTemplate(&$modinstance, $tpl_name = '', $modulename = 
  */
 function cms_module_ProcessTemplate(&$modinstance, $tpl_name, $designation = '', $cache = false, $cacheid = '')
 {
+	$tpl_name = _cms_module_strip_file_tag($tpl_name);
 	$ok = (strpos($tpl_name, '..') === false);
 	if (!$ok) return;
 
@@ -194,6 +198,7 @@ function cms_module_ProcessTemplateFromData(&$modinstance, $data)
  */
 function cms_module_ProcessTemplateFromDatabase(&$modinstance, $tpl_name, $designation = '', $cache = false, $modulename = '')
 {
+    $tpl_name = _cms_module_strip_file_tag($tpl_name);
     $smarty = $modinstance->GetActionTemplateObject();
     if( !$smarty ) $smarty = Smarty_CMS::get_instance();
     if( $modulename == '' ) $modulename = $modinstance->GetName();
