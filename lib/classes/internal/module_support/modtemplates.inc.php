@@ -89,10 +89,34 @@ function cms_module_ListTemplates(&$modinstance, $modulename = '')
 function cms_module_GetTemplate(&$modinstance, $tpl_name, $modulename = '')
 {
 	$tpl_name = _cms_module_strip_file_tag($tpl_name);
-	$db = CmsApp::get_instance()->GetDb();
+	$mod = $modulename != '' ? $modulename : $modinstance->GetName();
 
+	// File override wins — sync file content to DB on admin read
+	if (_cms_module_has_template_file($mod, $tpl_name)) {
+		$config = \cms_config::get_instance();
+		$fn = cms_join_path($config['assets_path'], 'module_custom', $mod, 'templates', 'db', basename($tpl_name) . '.tpl');
+		$content = file_get_contents($fn);
+
+		// Sync to DB
+		$db = CmsApp::get_instance()->GetDb();
+		$time = $db->DBTimeStamp(time());
+		$query = 'SELECT module_name FROM '.CMS_DB_PREFIX.'module_templates WHERE module_name = ? and template_name = ?';
+		$result = $db->Execute($query, array($mod, $tpl_name));
+		if ($result && $result->RecordCount() < 1) {
+			$query = 'INSERT INTO '.CMS_DB_PREFIX.'module_templates (module_name, template_name, content, create_date, modified_date) VALUES (?,?,?,'.$time.','.$time.')';
+			$db->Execute($query, array($mod, $tpl_name, $content));
+		}
+		else {
+			$query = 'UPDATE '.CMS_DB_PREFIX.'module_templates SET content = ?, modified_date = '.$time.' WHERE module_name = ? AND template_name = ?';
+			$db->Execute($query, array($content, $mod, $tpl_name));
+		}
+
+		return $content;
+	}
+
+	$db = CmsApp::get_instance()->GetDb();
 	$query = 'SELECT * from '.CMS_DB_PREFIX.'module_templates WHERE module_name = ? and template_name = ?';
-	$result = $db->Execute($query, array($modulename != ''?$modulename:$modinstance->GetName(), $tpl_name));
+	$result = $db->Execute($query, array($mod, $tpl_name));
 
 	if ($result && $result->RecordCount() > 0) {
 		$row = $result->FetchRow();
