@@ -48,6 +48,16 @@ class CMSModuleDbTemplateResource extends CMS_Fixed_Resource_Custom
         // Strip (f) tag if present
         $tpl_name = preg_replace('/\s*\(f\)$/', '', $tpl_name);
 
+        // Check for file override in module_custom/templates/db/
+        $config = \cms_config::get_instance();
+        $fn = cms_join_path($config['assets_path'], 'module_custom', $module_name, 'templates', 'db', basename($tpl_name) . '.tpl');
+        if (is_file($fn) && is_readable($fn)) {
+            $source = file_get_contents($fn);
+            $mtime = filemtime($fn);
+            debug_buffer('','CMSModuleDbTemplateResource end (file override) '.$name);
+            return;
+        }
+
         $query = "SELECT * from ".CMS_DB_PREFIX."module_templates WHERE module_name = ? and template_name = ?";
         $row = $db->GetRow($query, array($module_name, $tpl_name));
         if ($row) {

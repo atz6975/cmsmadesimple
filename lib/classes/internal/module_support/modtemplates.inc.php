@@ -64,12 +64,17 @@ function cms_module_ListTemplates(&$modinstance, $modulename = '')
 {
 	$db = CmsApp::get_instance()->GetDb();
 	$retresult = array();
+	$mod = $modulename != '' ? $modulename : $modinstance->GetName();
 
 	$query = 'SELECT * from '.CMS_DB_PREFIX.'module_templates WHERE module_name = ? ORDER BY template_name ASC';
-	$result = $db->Execute($query, array($modulename != ''?$modulename:$modinstance->GetName()));
+	$result = $db->Execute($query, array($mod));
 
 	while (isset($result) && !$result->EOF) {
-		$retresult[] = $result->fields['template_name'];
+		$name = $result->fields['template_name'];
+		if (_cms_module_has_template_file($mod, $name)) {
+			$name .= ' (f)';
+		}
+		$retresult[] = $name;
 		$result->MoveNext();
 	}
 
