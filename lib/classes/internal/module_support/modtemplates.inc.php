@@ -153,20 +153,37 @@ function cms_module_GetTemplateFromFile(&$modinstance, $template_name)
  */
 function cms_module_SetTemplate(&$modinstance, $tpl_name, $content, $modulename = '')
 {
+	$has_file = _cms_module_has_file_tag($tpl_name);
 	$tpl_name = _cms_module_strip_file_tag($tpl_name);
+	$mod = $modulename != '' ? $modulename : $modinstance->GetName();
+
 	$db = CmsApp::get_instance()->GetDb();
 
 	$query = 'SELECT module_name FROM '.CMS_DB_PREFIX.'module_templates WHERE module_name = ? and template_name = ?';
-	$result = $db->Execute($query, array($modulename != ''?$modulename:$modinstance->GetName(), $tpl_name));
+	$result = $db->Execute($query, array($mod, $tpl_name));
 
 	$time = $db->DBTimeStamp(time());
 	if ($result && $result->RecordCount() < 1) {
 		$query = 'INSERT INTO '.CMS_DB_PREFIX.'module_templates (module_name, template_name, content, create_date, modified_date) VALUES (?,?,?,'.$time.','.$time.')';
-		$db->Execute($query, array($modulename != ''?$modulename:$modinstance->GetName(), $tpl_name, $content));
+		$db->Execute($query, array($mod, $tpl_name, $content));
 	}
 	else {
 		$query = 'UPDATE '.CMS_DB_PREFIX.'module_templates SET content = ?, modified_date = '.$time.' WHERE module_name = ? AND template_name = ?';
-		$db->Execute($query, array($content, $modulename != ''?$modulename:$modinstance->GetName(), $tpl_name));
+		$db->Execute($query, array($content, $mod, $tpl_name));
+	}
+
+	$config = \cms_config::get_instance();
+	$fn = cms_join_path($config['assets_path'], 'module_custom', $mod, 'templates', 'db', basename($tpl_name) . '.tpl');
+
+	if ($has_file) {
+		// (f) tag present — write content to file
+		$dir = dirname($fn);
+		if (!is_dir($dir)) @mkdir($dir, 0771, true);
+		file_put_contents($fn, $content);
+	}
+	elseif (is_file($fn)) {
+		// No (f) tag — remove file override so DB becomes the active source
+		@unlink($fn);
 	}
 }
 
@@ -176,13 +193,21 @@ function cms_module_SetTemplate(&$modinstance, $tpl_name, $content, $modulename 
 function cms_module_DeleteTemplate(&$modinstance, $tpl_name = '', $modulename = '')
 {
 	$tpl_name = _cms_module_strip_file_tag($tpl_name);
+	$mod = $modulename != '' ? $modulename : $modinstance->GetName();
 	$db = CmsApp::get_instance()->GetDb();
 
-	$parms = array($modulename != ''?$modulename:$modinstance->GetName());
+	$parms = array($mod);
 	$query = "DELETE FROM ".CMS_DB_PREFIX."module_templates WHERE module_name = ?";
 	if( $tpl_name != '' ) {
 		$query .= 'AND template_name = ?';
 	    $parms[] = $tpl_name;
+
+		// Remove file override if it exists
+		if (_cms_module_has_template_file($mod, $tpl_name)) {
+			$config = \cms_config::get_instance();
+			$fn = cms_join_path($config['assets_path'], 'module_custom', $mod, 'templates', 'db', basename($tpl_name) . '.tpl');
+			@unlink($fn);
+		}
 	}
 	$result = $db->Execute($query, $parms);
 	return ($result == false)?false:true;
