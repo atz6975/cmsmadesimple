@@ -2490,6 +2490,76 @@ abstract class CMSModule
     }
 
     /**
+     * Get the filesystem path for a module DB template override file.
+     * Works with both clean names and (f)-tagged names.
+     *
+
+     * @param string $tpl_name The template name
+     * @return string The full filesystem path
+     */
+    final public function GetModuleDbTemplateFilename($tpl_name)
+    {
+        $tpl_name = preg_replace('/\s*\(f\)$/', '', $tpl_name);
+        $config = \cms_config::get_instance();
+        return cms_join_path($config['assets_path'], 'module_custom', $this->GetName(), 'templates', 'db', basename($tpl_name) . '.tpl');
+    }
+
+    /**
+     * Check if a file override exists for a module DB template.
+     * Works with both clean names and (f)-tagged names.
+     *
+
+     * @param string $tpl_name The template name
+     * @return bool
+     */
+    final public function HasModuleDbTemplateFile($tpl_name)
+    {
+        $fn = $this->GetModuleDbTemplateFilename($tpl_name);
+        return is_file($fn) && is_readable($fn);
+    }
+
+    /**
+     * Export a module DB template to a file override.
+     * Reads content from DB and writes it to the module_custom/templates/db/ path.
+     * After export, the file becomes the active override.
+     *
+
+     * @param string $tpl_name The template name
+     * @return bool True on success
+     */
+    final public function ExportModuleDbTemplate($tpl_name)
+    {
+        $tpl_name = preg_replace('/\s*\(f\)$/', '', $tpl_name);
+        $content = $this->GetTemplate($tpl_name);
+        if ($content === '') return false;
+
+        $fn = $this->GetModuleDbTemplateFilename($tpl_name);
+        $dir = dirname($fn);
+        if (!is_dir($dir)) @mkdir($dir, 0771, true);
+        return (file_put_contents($fn, $content) !== false);
+    }
+
+    /**
+     * Import a module template from file override into DB, then delete the file.
+     * After import, the DB becomes the active source again.
+     *
+
+     * @param string $tpl_name The template name
+     * @return bool True on success
+     */
+    final public function ImportModuleDbTemplate($tpl_name)
+    {
+        $tpl_name = preg_replace('/\s*\(f\)$/', '', $tpl_name);
+        $fn = $this->GetModuleDbTemplateFilename($tpl_name);
+        if (!is_file($fn) || !is_readable($fn)) return false;
+
+        $content = file_get_contents($fn);
+        $this->SetTemplate($tpl_name, $content);
+        @unlink($fn);
+        return true;
+    }
+
+    /**
      * A function to return a resource identifier to a module specific template
      * if the template specified ends in .tpl then a file template is assumed.
      *
